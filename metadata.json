@@ -1,0 +1,5 @@
+{
+  "name": "UGC Data Transformer",
+  "description": "A tool to transform tabular data (Excel/CSV) into structured UGC platform JSON configurations based on customizable mapping rules.",
+  "requestFramePermissions": []
+}

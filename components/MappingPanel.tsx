@@ -61,7 +61,19 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
                     staticValue: ""
                 }));
             } else {
-                 autoFields = [{ targetParamType: 'String', sourceType: defaultSource, columnIndex: 0, staticValue: "" }];
+                 // Fallback: Try to derive structure from target file content if available (especially for Singleton Structs)
+                 // This helps ensures we have the correct number of fields even if the definition is missing
+                 if (mappingType === MappingType.STRUCT && item.value?.value && Array.isArray(item.value.value)) {
+                     autoFields = item.value.value.map((p: any) => ({
+                        targetParamType: p.param_type || 'String',
+                        targetKey: p.key, // Often undefined in target JSON, resolved via registry in RowConfig
+                        sourceType: defaultSource,
+                        columnIndex: 0,
+                        staticValue: ""
+                     }));
+                 } else {
+                     autoFields = [{ targetParamType: 'String', sourceType: defaultSource, columnIndex: 0, staticValue: "" }];
+                 }
             }
             return { ...baseConfig, innerStructId: innerId, structFields: autoFields };
         }
@@ -223,10 +235,22 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
                             )}
                         </div>
                         
-                        {config.structFields.map((field, idx) => (
+                        {config.structFields.map((field, idx) => {
+                             // Dynamic Label Lookup
+                             let displayLabel = field.targetKey || `Field ${idx+1}`;
+                             // Try to resolve from registry
+                             const definition = config.innerStructId ? structureRegistry[config.innerStructId] : null;
+                             if (definition && definition.content && Array.isArray(definition.content.value)) {
+                                 const defItem = definition.content.value[idx];
+                                 if (defItem && defItem.key) {
+                                     displayLabel = defItem.key;
+                                 }
+                             }
+
+                             return (
                              <div key={idx} className="flex items-center gap-2 pl-4 border-l-2 border-slate-200 py-1">
-                                 <div className="w-32 font-medium text-slate-600 truncate" title={field.targetKey || 'Unknown'}>
-                                     {field.targetKey || `Field ${idx+1}`}
+                                 <div className="w-32 font-medium text-slate-600 truncate" title={displayLabel}>
+                                     {displayLabel}
                                  </div>
                                  <div className="w-20 text-slate-400">{getTranslatedType(field.targetParamType)}</div>
                                  <div className="flex-1">
@@ -241,7 +265,8 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
                                     />
                                  </div>
                              </div>
-                        ))}
+                             );
+                        })}
                      </>
                  )}
 

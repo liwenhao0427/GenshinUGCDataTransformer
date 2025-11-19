@@ -48,24 +48,37 @@ const App: React.FC = () => {
 
   const handleUploadStructure = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-              try {
-                  const json = JSON.parse(evt.target?.result as string);
-                  
-                  // Default ID logic: try filename (digits only), else json.structId
-                  let defaultId = "";
-                  const filenameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-                  if (/^\d+$/.test(filenameWithoutExt)) {
-                      defaultId = filenameWithoutExt;
-                  } else if (json.structId) {
-                      defaultId = json.structId;
-                  }
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+          try {
+              const content = evt.target?.result as string;
+              console.log("Structure JSON loaded, parsing...");
+              const json = JSON.parse(content);
+              
+              // Robust ID Detection Strategy
+              let defaultId = "";
+              
+              // 1. Try explicit structId in JSON
+              if (json.structId) {
+                  defaultId = String(json.structId);
+              } 
+              // 2. Try basic_struct_id (common in UGC formats)
+              else if (json.basic_struct_id) {
+                  defaultId = String(json.basic_struct_id);
+              } 
+              // 3. Fallback to filename (stripped of extension)
+              else {
+                  defaultId = file.name.replace(/\.[^/.]+$/, "");
+              }
 
-                  const userInputId = window.prompt("请输入结构体 ID (structId):", defaultId);
-                  if (userInputId) {
-                      const id = userInputId.trim();
+              // Always prompt the user to confirm or enter the ID
+              const userInputId = window.prompt("请输入结构体 ID (structId):", defaultId);
+              
+              if (userInputId !== null) {
+                  const id = userInputId.trim();
+                  if (id) {
                       setStructureRegistry(prev => ({
                           ...prev,
                           [id]: {
@@ -74,39 +87,46 @@ const App: React.FC = () => {
                               content: json
                           }
                       }));
+                  } else {
+                      alert("ID 不能为空！");
                   }
-              } catch (err) {
-                  alert("无效的 JSON 文件格式");
               }
-              e.target.value = ''; // reset
-          };
-          reader.readAsText(file);
-      }
+          } catch (err) {
+              console.error("Upload Error:", err);
+              alert("无法解析 JSON 文件，请确保格式正确。");
+          } finally {
+              // Reset the input value so the same file can be selected again if needed
+              e.target.value = '';
+          }
+      };
+      reader.readAsText(file);
   };
 
   const handleUploadTargetFile = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-              try {
-                  const json = JSON.parse(evt.target?.result as string);
-                  const newFileId = Date.now().toString();
-                  const newFile: TargetFile = {
-                      id: newFileId,
-                      name: file.name,
-                      content: json
-                  };
-                  
-                  setTargetFiles(prev => [...prev, newFile]);
-                  setActiveFileId(newFileId);
-              } catch (err) {
-                  alert("无效的 JSON 文件格式");
-              }
-              e.target.value = ''; // reset
-          };
-          reader.readAsText(file);
-      }
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+          try {
+              const json = JSON.parse(evt.target?.result as string);
+              const newFileId = Date.now().toString();
+              const newFile: TargetFile = {
+                  id: newFileId,
+                  name: file.name,
+                  content: json
+              };
+              
+              setTargetFiles(prev => [...prev, newFile]);
+              setActiveFileId(newFileId);
+          } catch (err) {
+              console.error("Target File Upload Error:", err);
+              alert("无效的 JSON 文件格式");
+          } finally {
+               e.target.value = ''; 
+          }
+      };
+      reader.readAsText(file);
   };
 
   const handleUpdateConfigs = (newConfigs: SlotConfig[]) => {
@@ -163,7 +183,7 @@ const App: React.FC = () => {
                             <Layers className="w-4 h-4" />
                             结构体定义库
                         </h3>
-                        <label className="cursor-pointer text-primary hover:bg-blue-50 p-1 rounded transition">
+                        <label className="cursor-pointer text-primary hover:bg-blue-50 p-1 rounded transition" title="上传结构体定义 JSON">
                             <FilePlus className="w-4 h-4" />
                             <input type="file" accept=".json" className="hidden" onChange={handleUploadStructure} />
                         </label>
@@ -192,7 +212,7 @@ const App: React.FC = () => {
                             <FileJson className="w-4 h-4" />
                             初始数据 (Target)
                         </h3>
-                        <label className="cursor-pointer text-primary hover:bg-blue-50 p-1 rounded transition">
+                        <label className="cursor-pointer text-primary hover:bg-blue-50 p-1 rounded transition" title="上传初始数据 JSON">
                             <FolderOpen className="w-4 h-4" />
                             <input type="file" accept=".json" className="hidden" onChange={handleUploadTargetFile} />
                         </label>

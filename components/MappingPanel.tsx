@@ -30,10 +30,16 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
         const paramType = item.param_type;
         const mappingType = determineMappingType(paramType);
         
-        // Determine Label from Definition if available, else use index
-        let label = `Slot ${idx + 1}`;
-        if (fileDefinition && fileDefinition.content.value[idx]) {
-            label = fileDefinition.content.value[idx].key || label;
+        // Determine Label
+        // Priority: 1. Key in Target File (item.key) -> 2. Key in Definition -> 3. Default Slot X
+        let label = item.key;
+        
+        if (!label && fileDefinition && fileDefinition.content.value[idx]) {
+            label = fileDefinition.content.value[idx].key;
+        }
+        
+        if (!label) {
+            label = `Slot ${idx + 1}`;
         }
 
         // Default config object

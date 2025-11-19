@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DataPanel } from './components/DataPanel';
 import { MappingPanel } from './components/MappingPanel';
 import { ResultPanel } from './components/ResultPanel';
@@ -7,34 +7,71 @@ import { InputModal } from './components/InputModal';
 import { parseTableData, generateUGCJson } from './utils';
 import { SAMPLE_TARGET_JSON, SAMPLE_STRUCT_DEF_1077936134, SAMPLE_STRUCT_DEF_1077936130 } from './constants';
 import { TableData, SlotConfig, StructureDefinition, TargetFile } from './types';
-import { FileJson, FolderOpen, FilePlus, Layers, Trash2 } from 'lucide-react';
+import { FileJson, FolderOpen, FilePlus, Layers, Trash2, RefreshCcw } from 'lucide-react';
+
+const STORAGE_KEY_STRUCTURES = 'ugc_transformer_structures';
+const STORAGE_KEY_TARGETS = 'ugc_transformer_targets';
 
 const App: React.FC = () => {
   // --- State ---
   
   const [rawText, setRawText] = useState<string>("");
   
-  // Structure Definitions (Library)
-  const [structureRegistry, setStructureRegistry] = useState<{ [id: string]: StructureDefinition }>({
-      // Load the main complex definition
-      [SAMPLE_STRUCT_DEF_1077936134.structId]: {
-          id: SAMPLE_STRUCT_DEF_1077936134.structId,
-          name: SAMPLE_STRUCT_DEF_1077936134.name || "Complex Struct",
-          content: SAMPLE_STRUCT_DEF_1077936134
-      },
-      // Load the inner struct definition
-      [SAMPLE_STRUCT_DEF_1077936130.structId]: {
-          id: SAMPLE_STRUCT_DEF_1077936130.structId,
-          name: SAMPLE_STRUCT_DEF_1077936130.name || "Inner Struct",
-          content: SAMPLE_STRUCT_DEF_1077936130
+  // Structure Definitions (Library) - Load from LocalStorage or default
+  const [structureRegistry, setStructureRegistry] = useState<{ [id: string]: StructureDefinition }>(() => {
+      try {
+          const saved = localStorage.getItem(STORAGE_KEY_STRUCTURES);
+          if (saved) return JSON.parse(saved);
+      } catch (e) {
+          console.error("Failed to load structures from storage", e);
       }
+      return {
+          [SAMPLE_STRUCT_DEF_1077936134.structId]: {
+              id: SAMPLE_STRUCT_DEF_1077936134.structId,
+              name: SAMPLE_STRUCT_DEF_1077936134.name || "Complex Struct",
+              content: SAMPLE_STRUCT_DEF_1077936134
+          },
+          [SAMPLE_STRUCT_DEF_1077936130.structId]: {
+              id: SAMPLE_STRUCT_DEF_1077936130.structId,
+              name: SAMPLE_STRUCT_DEF_1077936130.name || "Inner Struct",
+              content: SAMPLE_STRUCT_DEF_1077936130
+          }
+      };
   });
 
-  // Target Files (Initial Data)
-  const [targetFiles, setTargetFiles] = useState<TargetFile[]>([
-      { id: 'default', name: SAMPLE_TARGET_JSON.name || 'Default Target', content: SAMPLE_TARGET_JSON }
-  ]);
-  const [activeFileId, setActiveFileId] = useState<string>('default');
+  // Target Files (Initial Data) - Load from LocalStorage or default
+  const [targetFiles, setTargetFiles] = useState<TargetFile[]>(() => {
+      try {
+          const saved = localStorage.getItem(STORAGE_KEY_TARGETS);
+          if (saved) return JSON.parse(saved);
+      } catch (e) {
+          console.error("Failed to load targets from storage", e);
+      }
+      return [{ id: 'default', name: SAMPLE_TARGET_JSON.name || 'Default Target', content: SAMPLE_TARGET_JSON }];
+  });
+
+  const [activeFileId, setActiveFileId] = useState<string>('');
+
+  // Ensure activeFileId is valid on init
+  useEffect(() => {
+      if (targetFiles.length > 0) {
+          if (!activeFileId || !targetFiles.find(f => f.id === activeFileId)) {
+              setActiveFileId(targetFiles[0].id);
+          }
+      } else {
+          setActiveFileId('');
+      }
+  }, [targetFiles, activeFileId]);
+
+  // Persist state to LocalStorage
+  useEffect(() => {
+      localStorage.setItem(STORAGE_KEY_STRUCTURES, JSON.stringify(structureRegistry));
+  }, [structureRegistry]);
+
+  useEffect(() => {
+      localStorage.setItem(STORAGE_KEY_TARGETS, JSON.stringify(targetFiles));
+  }, [targetFiles]);
+
 
   // Configurations per file: Map<fileId, SlotConfig[]>
   const [configsMap, setConfigsMap] = useState<{ [fileId: string]: SlotConfig[] }>({});
@@ -141,6 +178,14 @@ const App: React.FC = () => {
       }
   };
 
+  const handleResetStorage = () => {
+      if (window.confirm("确定要清空所有缓存数据并恢复默认设置吗？")) {
+          localStorage.removeItem(STORAGE_KEY_STRUCTURES);
+          localStorage.removeItem(STORAGE_KEY_TARGETS);
+          window.location.reload();
+      }
+  };
+
   return (
     <div className="h-screen flex flex-col font-sans">
       {/* Header */}
@@ -170,10 +215,15 @@ const App: React.FC = () => {
                             <Layers className="w-4 h-4" />
                             结构体定义库
                         </h3>
-                        <label className="cursor-pointer text-primary hover:bg-blue-50 p-1 rounded transition" title="上传结构体定义 JSON">
-                            <FilePlus className="w-4 h-4" />
-                            <input type="file" accept=".json" className="hidden" onChange={handleUploadStructure} />
-                        </label>
+                        <div className="flex gap-2">
+                            <button onClick={handleResetStorage} className="text-slate-400 hover:text-red-500 p-1 rounded transition" title="清空缓存 (重置)">
+                                <RefreshCcw className="w-3 h-3" />
+                            </button>
+                            <label className="cursor-pointer text-primary hover:bg-blue-50 p-1 rounded transition" title="上传结构体定义 JSON">
+                                <FilePlus className="w-4 h-4" />
+                                <input type="file" accept=".json" className="hidden" onChange={handleUploadStructure} />
+                            </label>
+                        </div>
                      </div>
                      <div className="flex-1 overflow-y-auto text-xs space-y-1 min-h-0">
                         {Object.values(structureRegistry).length === 0 ? (

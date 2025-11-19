@@ -90,6 +90,11 @@ interface VisualViewerProps {
 const VisualResultViewer: React.FC<VisualViewerProps> = ({ data, level = 0, label }) => {
     if (!data) return <span className="text-slate-400 italic">Null</span>;
 
+    // Handle Dict wrapper: { type: 'Dict', value: [...] }
+    if (data && typeof data === 'object' && data.type === 'Dict' && Array.isArray(data.value)) {
+        return <VisualResultViewer data={data.value} level={level} label={label} />;
+    }
+
     // 1. Root or Nested Struct
     if (data.type === 'Struct' && Array.isArray(data.value)) {
         return (
@@ -101,12 +106,6 @@ const VisualResultViewer: React.FC<VisualViewerProps> = ({ data, level = 0, labe
                 </div>
                 <div className="p-3 space-y-2">
                     {data.value.map((item: any, idx: number) => {
-                         // Try to find the key/label if available in the item itself (depends on how we generate)
-                         // Our generator output is basically just `value: [...]` for structs. 
-                         // For the root, it's a list of params.
-                         // Let's inspect the item structure. It usually has `param_type` and `value`.
-                         // We might need the definition key here, but the generator output doesn't always carry the 'key' property strictly unless we put it there.
-                         // Note: utils.ts generateUGCJson deep copies the template, so `key` should be preserved!
                          return (
                              <div key={idx} className="flex flex-col border-l-2 border-slate-100 pl-3">
                                  <div className="flex items-baseline justify-between mb-1">
@@ -127,10 +126,7 @@ const VisualResultViewer: React.FC<VisualViewerProps> = ({ data, level = 0, labe
     }
     
     // 2. Struct Object (Value of a Struct param)
-    // This matches the pattern: { structId: "...", type: "Struct", value: [...] }
     if (typeof data === 'object' && data.type === 'Struct' && Array.isArray(data.value)) {
-         // Recursively render this inner struct
-         // We reuse the logic above but wrapped differently
          return (
             <div className="bg-slate-50/50 border border-slate-200 rounded p-2">
                 <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
@@ -139,7 +135,10 @@ const VisualResultViewer: React.FC<VisualViewerProps> = ({ data, level = 0, labe
                 <div className="space-y-2">
                     {data.value.map((item: any, idx: number) => (
                         <div key={idx} className="border-l-2 border-indigo-200 pl-2">
-                             <div className="text-[10px] text-slate-400 mb-0.5">{TYPE_LABELS[item.param_type] || item.param_type}</div>
+                             <div className="flex justify-between mb-0.5">
+                                <span className="text-xs font-medium text-slate-600">{item.key || `Field ${idx+1}`}</span>
+                                <span className="text-[10px] text-slate-400">{TYPE_LABELS[item.param_type] || item.param_type}</span>
+                             </div>
                              <VisualResultViewer data={item.value} level={level + 1} />
                         </div>
                     ))}
@@ -149,7 +148,6 @@ const VisualResultViewer: React.FC<VisualViewerProps> = ({ data, level = 0, labe
     }
 
     // 3. Struct List
-    // Pattern: [ { param_type: 'Struct', value: {...} }, ... ]
     if (Array.isArray(data) && data.length > 0 && data[0]?.param_type === 'Struct') {
         return (
             <div className="space-y-2">
@@ -163,31 +161,21 @@ const VisualResultViewer: React.FC<VisualViewerProps> = ({ data, level = 0, labe
         );
     }
 
-    // 4. Dict (Key-Value Pairs)
-    // Pattern: [ { key: {...}, value: {...} }, ... ]
+    // 4. Dict (Key-Value Pairs) - Simple List Visualization
     if (Array.isArray(data) && data.length > 0 && data[0]?.key && data[0]?.value) {
         return (
-            <div className="border border-slate-200 rounded overflow-hidden">
-                <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-100 text-slate-600">
-                        <tr>
-                            <th className="px-2 py-1 border-b border-r border-slate-200 w-1/3">Key</th>
-                            <th className="px-2 py-1 border-b border-slate-200">Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.map((entry: any, idx: number) => (
-                            <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                <td className="px-2 py-1 border-r border-slate-200 font-mono text-slate-600">
-                                    <VisualResultViewer data={entry.key.value} />
-                                </td>
-                                <td className="px-2 py-1 text-slate-800">
-                                    <VisualResultViewer data={entry.value.value} />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="flex flex-col gap-1 p-2 bg-slate-50 rounded border border-slate-200">
+                {data.map((entry: any, idx: number) => (
+                    <div key={idx} className="flex items-center text-xs border-b border-slate-200 last:border-0 pb-1 mb-1 last:pb-0 last:mb-0">
+                         <div className="font-mono text-slate-600 mr-2 min-w-[20px]">
+                             <VisualResultViewer data={entry.key.value} />
+                         </div>
+                         <span className="text-slate-400 mr-2">:</span>
+                         <div className="text-slate-800 font-medium">
+                             <VisualResultViewer data={entry.value.value} />
+                         </div>
+                    </div>
+                ))}
             </div>
         );
     }

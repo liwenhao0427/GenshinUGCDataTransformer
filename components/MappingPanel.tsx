@@ -49,15 +49,19 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
             const innerId = item.value?.structId || "";
             // Try to find definition in registry to auto-populate fields
             let autoFields: FieldMapping[] = [];
+            
+            const defaultSource = mappingType === MappingType.STRUCT ? ValueSourceType.STATIC : ValueSourceType.COLUMN;
+
             if (innerId && structureRegistry[innerId]) {
                 autoFields = structureRegistry[innerId].content.value.map(p => ({
                     targetParamType: p.param_type,
                     targetKey: p.key,
-                    sourceType: ValueSourceType.COLUMN,
-                    columnIndex: 0 
+                    sourceType: defaultSource,
+                    columnIndex: 0,
+                    staticValue: ""
                 }));
             } else {
-                 autoFields = [{ targetParamType: 'String', sourceType: ValueSourceType.COLUMN, columnIndex: 0 }];
+                 autoFields = [{ targetParamType: 'String', sourceType: defaultSource, columnIndex: 0, staticValue: "" }];
             }
             return { ...baseConfig, innerStructId: innerId, structFields: autoFields };
         }

@@ -91,7 +91,7 @@ export const generateUGCJson = (
         targetSlot.value = formatValue(config.staticValue || "", config.originalParamType);
     }
     
-    // 2. SCALAR LIST - Uses a Data Column and splits by delimiter
+    // 2. SCALAR LIST - Uses a Data Column, one item per row (cell content = one item)
     else if (config.type === MappingType.SCALAR_LIST) {
         const baseType = config.originalParamType.replace('List', '');
         const generatedList: any[] = [];
@@ -99,11 +99,9 @@ export const generateUGCJson = (
         data.rows.forEach(row => {
             if (config.columnIndex !== undefined) {
                 const cellContent = row[config.columnIndex] || "";
-                // Split by comma or pipe
-                const parts = cellContent.split(/[,|]/).map(s => s.trim()).filter(s => s !== "");
-                parts.forEach(part => {
-                    generatedList.push(formatValue(part, baseType));
-                });
+                if (cellContent.trim() !== "") {
+                     generatedList.push(formatValue(cellContent, baseType));
+                }
             }
         });
         targetSlot.value = generatedList;
@@ -117,6 +115,7 @@ export const generateUGCJson = (
         const rowIndex = 0;
         
         const itemValues = config.structFields.map(field => ({
+            key: field.targetKey, // Ensure key is preserved for result viewer
             param_type: field.targetParamType,
             value: getValueFromSource(row, rowIndex, field)
         }));
@@ -133,6 +132,7 @@ export const generateUGCJson = (
     else if (config.type === MappingType.STRUCT_LIST) {
       const generatedStructs = data.rows.map((row, rowIndex) => {
         const itemValues = config.structFields.map(field => ({
+          key: field.targetKey, // Ensure key is preserved
           param_type: field.targetParamType,
           value: getValueFromSource(row, rowIndex, field)
         }));

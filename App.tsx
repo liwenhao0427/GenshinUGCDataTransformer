@@ -143,7 +143,7 @@ const App: React.FC = () => {
   return (
     <div className="h-screen flex flex-col font-sans">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shadow-sm z-10">
+      <header className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shadow-sm z-10 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
             U
@@ -156,15 +156,15 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Content Grid */}
-      <main className="flex-1 overflow-hidden p-4 bg-slate-50">
+      <main className="flex-1 overflow-hidden p-4 bg-slate-50 min-h-0">
         <div className="grid grid-cols-12 gap-4 h-full">
             
             {/* Column 1: File Management & Data Source (Left - 30%) */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-3 flex flex-col gap-4 h-full">
+            <div className="col-span-12 md:col-span-4 lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
                 
                 {/* Structure Registry Section */}
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col max-h-[200px]">
-                     <div className="flex justify-between items-center mb-2">
+                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col max-h-[200px] flex-shrink-0">
+                     <div className="flex justify-between items-center mb-2 flex-shrink-0">
                         <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                             <Layers className="w-4 h-4" />
                             结构体定义库
@@ -174,7 +174,7 @@ const App: React.FC = () => {
                             <input type="file" accept=".json" className="hidden" onChange={handleUploadStructure} />
                         </label>
                      </div>
-                     <div className="flex-1 overflow-y-auto text-xs space-y-1">
+                     <div className="flex-1 overflow-y-auto text-xs space-y-1 min-h-0">
                         {Object.values(structureRegistry).length === 0 ? (
                             <p className="text-slate-400 italic">暂无定义</p>
                         ) : Object.values(structureRegistry).map((struct: StructureDefinition) => (
@@ -198,8 +198,8 @@ const App: React.FC = () => {
                 </div>
 
                 {/* Initial Data Files Section */}
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col max-h-[200px]">
-                     <div className="flex justify-between items-center mb-2">
+                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col max-h-[200px] flex-shrink-0">
+                     <div className="flex justify-between items-center mb-2 flex-shrink-0">
                         <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                             <FileJson className="w-4 h-4" />
                             初始数据 (Template)
@@ -209,7 +209,7 @@ const App: React.FC = () => {
                             <input type="file" accept=".json" className="hidden" onChange={handleUploadTargetFile} />
                         </label>
                      </div>
-                     <div className="flex-1 overflow-y-auto text-xs space-y-1">
+                     <div className="flex-1 overflow-y-auto text-xs space-y-1 min-h-0">
                         {targetFiles.length === 0 ? (
                              <p className="text-slate-400 italic">请上传初始 JSON</p>
                         ) : targetFiles.map(file => (
@@ -242,7 +242,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Column 2: Mapping (Middle - 40%) */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-5 h-full">
+            <div className="col-span-12 md:col-span-4 lg:col-span-5 h-full min-h-0">
                 <MappingPanel 
                     activeFile={activeFile}
                     structureRegistry={structureRegistry}
@@ -253,7 +253,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Column 3: Output (Right - 30%) */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-4 h-full">
+            <div className="col-span-12 md:col-span-4 lg:col-span-4 h-full min-h-0">
                 <ResultPanel resultJson={resultJson} />
             </div>
         </div>

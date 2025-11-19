@@ -1,6 +1,33 @@
 
 import { UGCStruct } from "./types";
 
+// Shared Translation Map for Parameter Types
+export const TYPE_LABELS: {[key: string]: string} = {
+  'String': '字符串',
+  'StringList': '字符串列表',
+  'Int32': '整数',
+  'Int32List': '整数列表',
+  'Float': '浮点数',
+  'FloatList': '浮点数列表',
+  'Bool': '布尔值',
+  'BoolList': '布尔值列表',
+  'Vector3': '三维向量',
+  'Vector3List': '三维向量列表',
+  'Entity': '实体',
+  'EntityList': '实体列表',
+  'Guid': 'GUID',
+  'GuidList': 'GUID列表',
+  'ConfigReference': '配置ID',
+  'ConfigReferenceList': '配置ID列表',
+  'EntityReference': '元件ID',
+  'EntityReferenceList': '元件ID列表',
+  'Army': '阵营',
+  'ArmyList': '阵营列表',
+  'Struct': '结构体',
+  'StructList': '结构体列表',
+  'Dict': '字典'
+};
+
 // The Definition for the complex structure (Simulation Structure Type)
 export const SAMPLE_STRUCT_DEF_1077936134: UGCStruct = {
    "structId": "1077936134", 

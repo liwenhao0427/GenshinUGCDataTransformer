@@ -1,8 +1,9 @@
 
 import React, { useEffect } from 'react';
 import { SlotConfig, MappingType, ValueSourceType, TargetFile, FieldMapping, StructureDefinition } from '../types';
-import { Settings, Plus, X, AlertTriangle, FileCode, AlignJustify, Type } from 'lucide-react';
+import { Settings, FileCode } from 'lucide-react';
 import { determineMappingType } from '../utils';
+import { TYPE_LABELS } from '../constants';
 
 interface MappingPanelProps {
   activeFile: TargetFile | null;
@@ -11,6 +12,10 @@ interface MappingPanelProps {
   setConfigs: (configs: SlotConfig[]) => void;
   tableHeaders: string[];
 }
+
+const getTranslatedType = (type: string) => {
+    return TYPE_LABELS[type] || type;
+};
 
 export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structureRegistry, configs, setConfigs, tableHeaders }) => {
   
@@ -93,7 +98,7 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-      <div className="p-4 border-b border-slate-200 bg-slate-50">
+      <div className="p-4 border-b border-slate-200 bg-slate-50 flex-shrink-0">
         <h2 className="font-semibold text-slate-700 flex items-center gap-2">
           <Settings className="w-4 h-4" />
           2. 配置映射规则 - <span className="text-primary">{activeFile.name}</span>
@@ -103,7 +108,7 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
         {configs.map((config) => (
           <RowConfig 
             key={config.index} 
@@ -144,20 +149,20 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
   return (
     <div className="border border-slate-200 rounded bg-white hover:border-indigo-300 transition-colors">
         {/* Main Row */}
-        <div className="flex items-center p-2 gap-3 h-12">
+        <div className="flex items-center p-2 gap-3 min-h-[3rem]">
             {/* Index */}
             <div className="w-6 flex-shrink-0 text-center text-xs text-slate-400 font-mono">
                 {config.index + 1}
             </div>
 
             {/* Label & Type (Read Only) */}
-            <div className="w-48 flex-shrink-0 flex flex-col justify-center">
+            <div className="w-40 flex-shrink-0 flex flex-col justify-center">
                 <div className="text-sm font-medium text-slate-700 truncate" title={config.label}>{config.label}</div>
             </div>
 
-            <div className="w-28 flex-shrink-0">
+            <div className="w-24 flex-shrink-0">
                 <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${getTypeBadgeColor(config.originalParamType)}`}>
-                    {config.originalParamType}
+                    {getTranslatedType(config.originalParamType)}
                 </span>
             </div>
 
@@ -169,17 +174,17 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
                         value={config.staticValue || ''}
                         onChange={(e) => onChange({ staticValue: e.target.value })}
                         placeholder="输入固定值..."
-                        className="w-full max-w-xs text-sm border border-slate-300 rounded px-2 py-1 focus:border-primary focus:outline-none"
+                        className="w-full text-sm border border-slate-300 rounded px-2 py-1 focus:border-primary focus:outline-none"
                      />
                 )}
 
                 {config.type === MappingType.SCALAR_LIST && (
-                    <div className="w-full max-w-xs flex items-center gap-2">
-                        <span className="text-xs text-slate-400 whitespace-nowrap">数据列:</span>
+                    <div className="w-full flex items-center gap-2">
+                        <span className="text-xs text-slate-400 whitespace-nowrap hidden xl:inline">数据列:</span>
                         <select 
                             value={config.columnIndex || 0}
                             onChange={(e) => onChange({ columnIndex: parseInt(e.target.value) })}
-                            className="flex-1 text-sm border border-slate-300 rounded px-2 py-1 focus:border-primary focus:outline-none"
+                            className="flex-1 text-sm border border-slate-300 rounded px-2 py-1 focus:border-primary focus:outline-none min-w-0"
                         >
                             {headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
                         </select>
@@ -189,7 +194,7 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
                 {isComplex && (
                      <button 
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className={`text-xs px-3 py-1 rounded border transition flex items-center gap-1 ${isExpanded ? 'bg-slate-100 border-slate-300 text-slate-700' : 'bg-white border-primary text-primary hover:bg-blue-50'}`}
+                        className={`text-xs px-3 py-1 rounded border transition flex-shrink-0 flex items-center gap-1 ${isExpanded ? 'bg-slate-100 border-slate-300 text-slate-700' : 'bg-white border-primary text-primary hover:bg-blue-50'}`}
                      >
                          {isExpanded ? '收起配置' : '展开配置'}
                          {config.type === MappingType.STRUCT_LIST && '(列表)'}
@@ -200,11 +205,11 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
 
         {/* Expanded Area for Complex Types */}
         {isExpanded && isComplex && (
-            <div className="bg-slate-50 p-3 border-t border-slate-200 space-y-3">
+            <div className="bg-slate-50 p-3 border-t border-slate-200 space-y-3 text-xs">
                  {/* Struct / StructList Logic */}
                  {(config.type === MappingType.STRUCT || config.type === MappingType.STRUCT_LIST) && (
                      <>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                        <div className="flex items-center gap-2 text-slate-500 mb-2">
                             <FileCode className="w-3 h-3" />
                             <span>结构 ID: {config.innerStructId}</span>
                             {structureRegistry[config.innerStructId || ''] ? (
@@ -215,11 +220,11 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
                         </div>
                         
                         {config.structFields.map((field, idx) => (
-                             <div key={idx} className="flex items-center gap-2 pl-4 border-l-2 border-slate-200">
-                                 <div className="w-32 text-xs font-medium text-slate-600 truncate" title={field.targetKey || 'Unknown'}>
+                             <div key={idx} className="flex items-center gap-2 pl-4 border-l-2 border-slate-200 py-1">
+                                 <div className="w-32 font-medium text-slate-600 truncate" title={field.targetKey || 'Unknown'}>
                                      {field.targetKey || `Field ${idx+1}`}
                                  </div>
-                                 <div className="w-20 text-[10px] text-slate-400">{field.targetParamType}</div>
+                                 <div className="w-20 text-slate-400">{getTranslatedType(field.targetParamType)}</div>
                                  <div className="flex-1">
                                     <FieldSourceSelector 
                                         field={field} 
@@ -240,8 +245,8 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
                  {config.type === MappingType.DICT_KV && (
                      <div className="space-y-2 pl-4 border-l-2 border-amber-200">
                          <div className="flex items-center gap-2">
-                             <span className="w-10 text-xs font-bold text-slate-600">Key</span>
-                             <div className="w-20 text-[10px] text-slate-400">{config.dictKeyType}</div>
+                             <span className="w-10 font-bold text-slate-600">Key</span>
+                             <div className="w-20 text-slate-400">{getTranslatedType(config.dictKeyType || 'String')}</div>
                              <div className="flex-1">
                                 {config.keyMapping && (
                                     <FieldSourceSelector field={config.keyMapping} headers={headers} onChange={f => onChange({ keyMapping: f })} />
@@ -249,8 +254,8 @@ const RowConfig: React.FC<RowConfigProps> = ({ config, onChange, headers, struct
                              </div>
                          </div>
                          <div className="flex items-center gap-2">
-                             <span className="w-10 text-xs font-bold text-slate-600">Value</span>
-                             <div className="w-20 text-[10px] text-slate-400">{config.dictValueType}</div>
+                             <span className="w-10 font-bold text-slate-600">Value</span>
+                             <div className="w-20 text-slate-400">{getTranslatedType(config.dictValueType || 'String')}</div>
                              <div className="flex-1">
                                 {config.valueMapping && (
                                     <FieldSourceSelector field={config.valueMapping} headers={headers} onChange={f => onChange({ valueMapping: f })} />

@@ -53,8 +53,9 @@ const App: React.FC = () => {
 
   const resultJson = useMemo(() => {
     if (!activeFile) return {};
-    return generateUGCJson(activeFile.content, parsedData, activeConfigs);
-  }, [activeFile, parsedData, activeConfigs]);
+    // Pass structureRegistry to helper to resolve nested keys
+    return generateUGCJson(activeFile.content, parsedData, activeConfigs, structureRegistry);
+  }, [activeFile, parsedData, activeConfigs, structureRegistry]);
 
   // --- Handlers ---
 

@@ -1,25 +1,40 @@
 
 import { UGCStruct } from "./types";
 
-// The "Initial Data" file (Target File)
-export const SAMPLE_TARGET_JSON: UGCStruct = {
-  "structId": "1077936133",
-  "type": "Struct",
-  "value": [
-      { "key": "随从数据列表", "param_type": "StructList", "value": { "structId": "1077936130", "value": [] } },
-      { "key": "随从元件-配置id映射", "param_type": "Dict", "value": { "type": "Dict", "key_type": "EntityReference", "value_type": "ConfigReference", "value": [] } },
-      { "key": "随从配置id-元件映射", "param_type": "Dict", "value": { "type": "Dict", "key_type": "ConfigReference", "value_type": "EntityReference", "value": [] } },
-      { "key": "随从元件-名称映射", "param_type": "Dict", "value": { "type": "Dict", "key_type": "EntityReference", "value_type": "String", "value": [] } },
-      { "key": "随从元件-买入价格映射", "param_type": "Dict", "value": { "type": "Dict", "key_type": "EntityReference", "value_type": "Float", "value": [] } },
-      { "key": "随从元件-卖出价格映射", "param_type": "Dict", "value": { "type": "Dict", "key_type": "EntityReference", "value_type": "Float", "value": [] } },
-      { "key": "随从元件-序号映射", "param_type": "Dict", "value": { "type": "Dict", "key_type": "EntityReference", "value_type": "Int32", "value": [] } },
-      { "key": "随从配置id-序号映射", "param_type": "Dict", "value": { "type": "Dict", "key_type": "ConfigReference", "value_type": "Int32", "value": [] } }
-  ],
-  "basic_struct_id": "ec8719d7",
-  "name": "初始数据.json"
+// The Definition for the complex structure (Simulation Structure Type)
+export const SAMPLE_STRUCT_DEF_1077936134: UGCStruct = {
+   "structId": "1077936134", 
+   "type": "Struct", 
+   "name": "模拟结构体类型",
+   "value": [
+      { "key": "新增变量1", "param_type": "String", "value": { "param_type": "String", "value": "" } },
+      { "key": "新增变量2", "param_type": "StringList", "value": { "param_type": "StringList", "value": [] } },
+      { "key": "新增变量3", "param_type": "Int32", "value": { "param_type": "Int32", "value": "0" } },
+      { "key": "新增变量4", "param_type": "Int32List", "value": { "param_type": "Int32List", "value": [] } },
+      { "key": "新增变量5", "param_type": "Float", "value": { "param_type": "Float", "value": "0.00" } },
+      { "key": "新增变量6", "param_type": "FloatList", "value": { "param_type": "FloatList", "value": [] } },
+      { "key": "新增变量7", "param_type": "Bool", "value": { "param_type": "Bool", "value": "False" } },
+      { "key": "新增变量8", "param_type": "BoolList", "value": { "param_type": "BoolList", "value": [] } },
+      { "key": "新增变量9", "param_type": "Vector3", "value": { "param_type": "Vector3", "value": "0,0,0" } },
+      { "key": "新增变量10", "param_type": "Vector3List", "value": { "param_type": "Vector3List", "value": [] } },
+      { "key": "新增变量11", "param_type": "Entity", "value": { "param_type": "Entity", "value": "0" } },
+      { "key": "新增变量12", "param_type": "EntityList", "value": { "param_type": "EntityList", "value": [] } },
+      { "key": "新增变量13", "param_type": "Guid", "value": { "param_type": "Guid", "value": "0" } },
+      { "key": "新增变量14", "param_type": "GuidList", "value": { "param_type": "GuidList", "value": [] } },
+      { "key": "新增变量15", "param_type": "ConfigReference", "value": { "param_type": "ConfigReference", "value": "0" } },
+      { "key": "新增变量16", "param_type": "ConfigReferenceList", "value": { "param_type": "ConfigReferenceList", "value": [] } },
+      { "key": "新增变量17", "param_type": "String", "value": { "param_type": "String", "value": "" } },
+      { "key": "新增变量18", "param_type": "EntityReference", "value": { "param_type": "EntityReference", "value": "0" } },
+      { "key": "新增变量19", "param_type": "EntityReferenceList", "value": { "param_type": "EntityReferenceList", "value": [] } },
+      { "key": "新增变量20", "param_type": "Army", "value": { "param_type": "Army", "value": "0" } },
+      { "key": "新增变量21", "param_type": "ArmyList", "value": { "param_type": "ArmyList", "value": [] } },
+      { "key": "新增变量22", "param_type": "Struct", "value": { "param_type": "Struct", "value": { "structId": "1077936130", "type": "Struct", "value": [] } } },
+      { "key": "新增变量24", "param_type": "Dict", "value": { "param_type": "Dict", "value": { "type": "Dict", "key_type": "String", "value_type": "String", "value": [] } } },
+      { "key": "新增变量23", "param_type": "StructList", "value": { "param_type": "StructList", "value": { "structId": "1077936130", "value": [] } } }
+   ]
 };
 
-// The Definition of the item inside the StructList
+// The Inner Struct Definition (referenced in the complex one)
 export const SAMPLE_STRUCT_DEF_1077936130: UGCStruct = {
     "structId": "1077936130",
     "type": "Struct",
@@ -31,9 +46,45 @@ export const SAMPLE_STRUCT_DEF_1077936130: UGCStruct = {
     ]
 };
 
-export const SAMPLE_TABLE_DATA = `元件ID\t配置ID\t名称\t价格
-1082130436\t1107296257\t火史莱姆\t50
-1082130437\t1107296258\t大型火史莱姆\t75
-1082130438\t1107296260\t水史莱姆\t50
-1082130439\t1107296261\t大型水史莱姆\t75
-1082130440\t1107296262\t风史莱姆\t50`;
+// The "Initial Data" file (Target File) - Matches the structure of 1077936134
+export const SAMPLE_TARGET_JSON: UGCStruct = {
+    "structId": "1077936134", 
+    "type": "Struct", 
+    "name": "结构体数据.json",
+    "value": [
+       { "param_type": "String", "value": "" },
+       { "param_type": "StringList", "value": [] },
+       { "param_type": "Int32", "value": 0 },
+       { "param_type": "Int32List", "value": [] },
+       { "param_type": "Float", "value": 0.00 },
+       { "param_type": "FloatList", "value": [] },
+       { "param_type": "Bool", "value": "False" },
+       { "param_type": "BoolList", "value": [] },
+       { "param_type": "Vector3", "value": "0,0,0" },
+       { "param_type": "Vector3List", "value": [] },
+       { "param_type": "Entity", "value": "0" },
+       { "param_type": "EntityList", "value": [] },
+       { "param_type": "Guid", "value": "0" },
+       { "param_type": "GuidList", "value": [] },
+       { "param_type": "ConfigReference", "value": "0" },
+       { "param_type": "ConfigReferenceList", "value": [] },
+       { "param_type": "String", "value": "" },
+       { "param_type": "EntityReference", "value": "0" },
+       { "param_type": "EntityReferenceList", "value": [] },
+       { "param_type": "Army", "value": "0" },
+       { "param_type": "ArmyList", "value": [] },
+       { "param_type": "Struct", "value": { "structId": "1077936130", "type": "Struct", "value": [
+           { "param_type": "String", "value": "" },
+           { "param_type": "EntityReference", "value": "0" },
+           { "param_type": "ConfigReference", "value": "0" }
+       ] } },
+       { "param_type": "Dict", "value": { "type": "Dict", "key_type": "String", "value_type": "String", "value": [] } },
+       { "param_type": "StructList", "value": { "structId": "1077936130", "value": [] } }
+    ],
+    "basic_struct_id": "6e2fd6dc"
+};
+
+export const SAMPLE_TABLE_DATA = `新增变量1\t新增变量2\t新增变量3\t新增变量4\t名称
+测试A\tA1,A2\t100\t1,2,3\tItem A
+测试B\tB1,B2\t200\t4,5,6\tItem B
+测试C\tC1,C2\t300\t7,8,9\tItem C`;

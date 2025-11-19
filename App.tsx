@@ -1,9 +1,11 @@
+
 import React, { useState, useMemo } from 'react';
 import { DataPanel } from './components/DataPanel';
 import { MappingPanel } from './components/MappingPanel';
 import { ResultPanel } from './components/ResultPanel';
+import { InputModal } from './components/InputModal';
 import { parseTableData, generateUGCJson } from './utils';
-import { SAMPLE_TARGET_JSON, SAMPLE_STRUCT_DEF_1077936130 } from './constants';
+import { SAMPLE_TARGET_JSON, SAMPLE_STRUCT_DEF_1077936134, SAMPLE_STRUCT_DEF_1077936130 } from './constants';
 import { TableData, SlotConfig, StructureDefinition, TargetFile } from './types';
 import { FileJson, FolderOpen, FilePlus, Layers, Trash2 } from 'lucide-react';
 
@@ -14,9 +16,16 @@ const App: React.FC = () => {
   
   // Structure Definitions (Library)
   const [structureRegistry, setStructureRegistry] = useState<{ [id: string]: StructureDefinition }>({
+      // Load the main complex definition
+      [SAMPLE_STRUCT_DEF_1077936134.structId]: {
+          id: SAMPLE_STRUCT_DEF_1077936134.structId,
+          name: SAMPLE_STRUCT_DEF_1077936134.name || "Complex Struct",
+          content: SAMPLE_STRUCT_DEF_1077936134
+      },
+      // Load the inner struct definition
       [SAMPLE_STRUCT_DEF_1077936130.structId]: {
           id: SAMPLE_STRUCT_DEF_1077936130.structId,
-          name: SAMPLE_STRUCT_DEF_1077936130.name || "Default Struct",
+          name: SAMPLE_STRUCT_DEF_1077936130.name || "Inner Struct",
           content: SAMPLE_STRUCT_DEF_1077936130
       }
   });
@@ -30,6 +39,9 @@ const App: React.FC = () => {
   // Configurations per file: Map<fileId, SlotConfig[]>
   const [configsMap, setConfigsMap] = useState<{ [fileId: string]: SlotConfig[] }>({});
   
+  // Modal State
+  const [modal, setModal] = useState<{ isOpen: boolean; title: string; defaultValue: string; callback: (val: string) => void } | null>(null);
+
   // --- Derived State ---
   
   const parsedData: TableData = useMemo(() => parseTableData(rawText), [rawText]);
@@ -54,48 +66,38 @@ const App: React.FC = () => {
       reader.onload = (evt) => {
           try {
               const content = evt.target?.result as string;
-              console.log("Structure JSON loaded, parsing...");
+              console.log("Structure JSON loaded:", content.substring(0, 100));
               const json = JSON.parse(content);
               
-              // Robust ID Detection Strategy
               let defaultId = "";
-              
-              // 1. Try explicit structId in JSON
-              if (json.structId) {
-                  defaultId = String(json.structId);
-              } 
-              // 2. Try basic_struct_id (common in UGC formats)
-              else if (json.basic_struct_id) {
-                  defaultId = String(json.basic_struct_id);
-              } 
-              // 3. Fallback to filename (stripped of extension)
-              else {
-                  defaultId = file.name.replace(/\.[^/.]+$/, "");
-              }
+              if (json.structId) defaultId = String(json.structId);
+              else if (json.basic_struct_id) defaultId = String(json.basic_struct_id);
+              else defaultId = file.name.replace(/\.[^/.]+$/, "");
 
-              // Always prompt the user to confirm or enter the ID
-              const userInputId = window.prompt("请输入结构体 ID (structId):", defaultId);
-              
-              if (userInputId !== null) {
-                  const id = userInputId.trim();
-                  if (id) {
-                      setStructureRegistry(prev => ({
-                          ...prev,
-                          [id]: {
-                              id,
-                              name: json.name || file.name,
-                              content: json
-                          }
-                      }));
-                  } else {
-                      alert("ID 不能为空！");
+              // Use Custom Modal instead of window.prompt
+              setModal({
+                  isOpen: true,
+                  title: "请输入结构体 ID (structId)",
+                  defaultValue: defaultId,
+                  callback: (id) => {
+                      if (id.trim()) {
+                          setStructureRegistry(prev => ({
+                              ...prev,
+                              [id]: {
+                                  id,
+                                  name: json.name || file.name,
+                                  content: json
+                              }
+                          }));
+                      }
+                      setModal(null);
                   }
-              }
+              });
+
           } catch (err) {
               console.error("Upload Error:", err);
               alert("无法解析 JSON 文件，请确保格式正确。");
           } finally {
-              // Reset the input value so the same file can be selected again if needed
               e.target.value = '';
           }
       };
@@ -138,34 +140,18 @@ const App: React.FC = () => {
       }
   };
 
-  const handleDeleteTargetFile = (id: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-      setTargetFiles(prev => prev.filter(f => f.id !== id));
-      if (activeFileId === id) {
-          setActiveFileId(targetFiles.find(f => f.id !== id)?.id || '');
-      }
-  };
-  
-  const handleDeleteStruct = (id: string) => {
-      setStructureRegistry(prev => {
-          const next = { ...prev };
-          delete next[id];
-          return next;
-      });
-  };
-
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col font-sans">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shadow-sm z-10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
             U
           </div>
-          <h1 className="text-lg font-bold text-slate-800 tracking-tight">UGC Data Transformer</h1>
+          <h1 className="text-lg font-bold text-slate-800 tracking-tight">结构体编辑工具</h1>
         </div>
         <div className="text-xs text-slate-500">
-             Designed for UGC Platform Configuration
+             UGC 配置映射生成器
         </div>
       </header>
 
@@ -194,10 +180,16 @@ const App: React.FC = () => {
                         ) : Object.values(structureRegistry).map((struct: StructureDefinition) => (
                             <div key={struct.id} className="flex justify-between items-center bg-slate-50 px-2 py-1.5 rounded border border-slate-100 group">
                                 <div className="flex flex-col overflow-hidden">
-                                    <span className="font-medium text-slate-700 truncate">{struct.id}</span>
+                                    <span className="font-medium text-slate-700 truncate">ID: {struct.id}</span>
                                     <span className="text-[10px] text-slate-500 truncate">{struct.name}</span>
                                 </div>
-                                <button onClick={() => handleDeleteStruct(struct.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
+                                <button onClick={() => {
+                                    setStructureRegistry(prev => {
+                                        const next = {...prev};
+                                        delete next[struct.id];
+                                        return next;
+                                    });
+                                }} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
                                     <Trash2 className="w-3 h-3" />
                                 </button>
                             </div>
@@ -210,7 +202,7 @@ const App: React.FC = () => {
                      <div className="flex justify-between items-center mb-2">
                         <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                             <FileJson className="w-4 h-4" />
-                            初始数据 (Target)
+                            初始数据 (Template)
                         </h3>
                         <label className="cursor-pointer text-primary hover:bg-blue-50 p-1 rounded transition" title="上传初始数据 JSON">
                             <FolderOpen className="w-4 h-4" />
@@ -227,7 +219,11 @@ const App: React.FC = () => {
                                 className={`flex justify-between items-center px-2 py-2 rounded border cursor-pointer transition ${activeFileId === file.id ? 'bg-blue-50 border-primary text-primary' : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100'}`}
                             >
                                 <span className="font-medium truncate">{file.name}</span>
-                                <button onClick={(e) => handleDeleteTargetFile(file.id, e)} className="text-slate-300 hover:text-red-500 p-1">
+                                <button onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTargetFiles(prev => prev.filter(f => f.id !== file.id));
+                                    if(activeFileId === file.id) setActiveFileId("");
+                                }} className="text-slate-300 hover:text-red-500 p-1">
                                     <Trash2 className="w-3 h-3" />
                                 </button>
                             </div>
@@ -260,9 +256,18 @@ const App: React.FC = () => {
             <div className="col-span-12 md:col-span-4 lg:col-span-4 h-full">
                 <ResultPanel resultJson={resultJson} />
             </div>
-
         </div>
       </main>
+
+      {modal && (
+          <InputModal 
+            isOpen={modal.isOpen} 
+            title={modal.title} 
+            defaultValue={modal.defaultValue}
+            onConfirm={modal.callback}
+            onCancel={() => setModal(null)}
+          />
+      )}
     </div>
   );
 };

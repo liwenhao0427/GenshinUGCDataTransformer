@@ -35,8 +35,11 @@ export interface TargetFile {
 
 // Mapping Configuration Types
 export enum MappingType {
-  STRUCT_LIST = 'StructList',
-  DICT_KV = 'Dict',
+  SCALAR = 'Scalar',          // String, Int32, Float, Bool, Vector3, Entity, Guid, ConfigReference, EntityReference, Army
+  SCALAR_LIST = 'ScalarList', // StringList, Int32List, etc.
+  STRUCT = 'Struct',          // Single Nested Struct
+  STRUCT_LIST = 'StructList', // Array of Structs
+  DICT_KV = 'Dict',           // Dictionary
   IGNORE = 'Ignore',
 }
 
@@ -58,8 +61,15 @@ export interface SlotConfig {
   index: number; // Index in the root.value array of the Target File
   type: MappingType;
   label?: string; // Display name for the slot (from key field)
+  originalParamType: string; // Store the original type from JSON (e.g. "String", "Int32List")
   
-  // For StructList
+  // For Scalars (Int32, String, etc.)
+  staticValue?: string;
+
+  // For Scalar Lists (Int32List, etc.)
+  columnIndex?: number; 
+
+  // For Struct / StructList
   innerStructId?: string;
   structFields: FieldMapping[]; 
   

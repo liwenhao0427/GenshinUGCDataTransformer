@@ -1,5 +1,5 @@
 
-import { TableData, SlotConfig, MappingType, ValueSourceType, UGCStruct, FieldMapping } from './types';
+import { TableData, SlotConfig, MappingType, ValueSourceType, UGCStruct, FieldMapping, StructureDefinition } from './types';
 
 export const parseTableData = (rawText: string): TableData => {
   const lines = rawText.trim().split('\n').filter(line => line.trim() !== '');
@@ -37,18 +37,13 @@ const formatValue = (val: string, type: string): any => {
     }
     if (type === 'Float') {
         const num = parseFloat(val);
-        // Return as string with 2 decimals for UGC format consistency if needed, 
-        // or number. The example shows numbers for Int/Float but Strings for others.
-        // Let's match the example: Int/Float are raw numbers in JSON.
         return isNaN(num) ? 0.0 : num; 
     }
     if (type === 'Bool') {
         const lower = val.toLowerCase();
-        // Example uses "True"/"False" strings
-        return (lower === 'true' || lower === '1' || lower === 'yes') ? "True" : "False";
+        return (lower === 'true' || lower === '1' || lower === 'yes' || lower === '是') ? "True" : "False";
     }
     if (type === 'Vector3') {
-        // Ensure X,Y,Z format? 
         return val || "0,0,0";
     }
     // Default String
@@ -75,7 +70,8 @@ export const getValueFromSource = (
 export const generateUGCJson = (
   template: UGCStruct,
   data: TableData,
-  configs: SlotConfig[]
+  configs: SlotConfig[],
+  structureRegistry?: { [id: string]: StructureDefinition }
 ): UGCStruct => {
   // Deep copy template
   const result = JSON.parse(JSON.stringify(template));
@@ -86,12 +82,18 @@ export const generateUGCJson = (
     const targetSlot = result.value[config.index];
     if (!targetSlot) return;
 
+    // Assign key for top-level item if label exists
+    if (config.label) {
+        targetSlot.key = config.label;
+    }
+
     // 1. SCALAR (Single Value) - Uses Static Value (Manual Input)
     if (config.type === MappingType.SCALAR) {
         targetSlot.value = formatValue(config.staticValue || "", config.originalParamType);
     }
     
-    // 2. SCALAR LIST - Uses a Data Column, one item per row (cell content = one item)
+    // 2. SCALAR LIST - Uses a Data Column, one item per row
+    // FIX: Do NOT split cell content. 1 row = 1 item.
     else if (config.type === MappingType.SCALAR_LIST) {
         const baseType = config.originalParamType.replace('List', '');
         const generatedList: any[] = [];
@@ -99,6 +101,7 @@ export const generateUGCJson = (
         data.rows.forEach(row => {
             if (config.columnIndex !== undefined) {
                 const cellContent = row[config.columnIndex] || "";
+                // Only add if content exists (empty strings might be skipped or added as empty depending on req, here we skip empty)
                 if (cellContent.trim() !== "") {
                      generatedList.push(formatValue(cellContent, baseType));
                 }
@@ -109,16 +112,25 @@ export const generateUGCJson = (
 
     // 3. STRUCT (Singleton) - Uses row 0 of data source or static
     else if (config.type === MappingType.STRUCT) {
-        // For a single struct, we typically map it once. 
-        // We can use the first row of data if columns are selected, or just static values.
         const row = data.rows.length > 0 ? data.rows[0] : [];
         const rowIndex = 0;
         
-        const itemValues = config.structFields.map(field => ({
-            key: field.targetKey, // Ensure key is preserved for result viewer
-            param_type: field.targetParamType,
-            value: getValueFromSource(row, rowIndex, field)
-        }));
+        // Resolve definition for key lookup
+        const structDef = config.innerStructId && structureRegistry ? structureRegistry[config.innerStructId] : null;
+
+        const itemValues = config.structFields.map((field, idx) => {
+            // Try to resolve key from definition if not in mapping
+            let key = field.targetKey;
+            if (!key && structDef && structDef.content.value[idx]) {
+                key = structDef.content.value[idx].key;
+            }
+
+            return {
+                key: key, 
+                param_type: field.targetParamType,
+                value: getValueFromSource(row, rowIndex, field)
+            };
+        });
         
         if (targetSlot.value && typeof targetSlot.value === 'object') {
             targetSlot.value.value = itemValues;
@@ -130,12 +142,23 @@ export const generateUGCJson = (
 
     // 4. STRUCT LIST - Generates one struct per row
     else if (config.type === MappingType.STRUCT_LIST) {
+      // Resolve definition for key lookup
+      const structDef = config.innerStructId && structureRegistry ? structureRegistry[config.innerStructId] : null;
+
       const generatedStructs = data.rows.map((row, rowIndex) => {
-        const itemValues = config.structFields.map(field => ({
-          key: field.targetKey, // Ensure key is preserved
-          param_type: field.targetParamType,
-          value: getValueFromSource(row, rowIndex, field)
-        }));
+        const itemValues = config.structFields.map((field, idx) => {
+          // Try to resolve key from definition
+          let key = field.targetKey;
+          if (!key && structDef && structDef.content.value[idx]) {
+              key = structDef.content.value[idx].key;
+          }
+
+          return {
+            key: key, 
+            param_type: field.targetParamType,
+            value: getValueFromSource(row, rowIndex, field)
+          };
+        });
 
         return {
           param_type: "Struct",

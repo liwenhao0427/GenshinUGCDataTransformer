@@ -50,6 +50,7 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
             // Try to find definition in registry to auto-populate fields
             let autoFields: FieldMapping[] = [];
             
+            // Fix: Default source for singleton struct should be STATIC (Manual Input)
             const defaultSource = mappingType === MappingType.STRUCT ? ValueSourceType.STATIC : ValueSourceType.COLUMN;
 
             if (innerId && structureRegistry[innerId]) {
@@ -62,7 +63,6 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
                 }));
             } else {
                  // Fallback: Try to derive structure from target file content if available (especially for Singleton Structs)
-                 // This helps ensures we have the correct number of fields even if the definition is missing
                  if (mappingType === MappingType.STRUCT && item.value?.value && Array.isArray(item.value.value)) {
                      autoFields = item.value.value.map((p: any) => ({
                         targetParamType: p.param_type || 'String',

@@ -11,6 +11,7 @@ import { FileJson, FolderOpen, FilePlus, Layers, Trash2, RefreshCcw } from 'luci
 
 const STORAGE_KEY_STRUCTURES = 'ugc_transformer_structures';
 const STORAGE_KEY_TARGETS = 'ugc_transformer_targets';
+const STORAGE_KEY_CONFIGS = 'ugc_transformer_configs';
 
 const App: React.FC = () => {
   // --- State ---
@@ -74,7 +75,21 @@ const App: React.FC = () => {
 
 
   // Configurations per file: Map<fileId, SlotConfig[]>
-  const [configsMap, setConfigsMap] = useState<{ [fileId: string]: SlotConfig[] }>({});
+  // Load from LocalStorage
+  const [configsMap, setConfigsMap] = useState<{ [fileId: string]: SlotConfig[] }>(() => {
+      try {
+          const saved = localStorage.getItem(STORAGE_KEY_CONFIGS);
+          if (saved) return JSON.parse(saved);
+      } catch (e) {
+          console.error("Failed to load configs from storage", e);
+      }
+      return {};
+  });
+
+  // Persist configsMap
+  useEffect(() => {
+      localStorage.setItem(STORAGE_KEY_CONFIGS, JSON.stringify(configsMap));
+  }, [configsMap]);
   
   // Modal State
   const [modal, setModal] = useState<{ isOpen: boolean; title: string; defaultValue: string; callback: (val: string) => void } | null>(null);
@@ -179,9 +194,10 @@ const App: React.FC = () => {
   };
 
   const handleResetStorage = () => {
-      if (window.confirm("确定要清空所有缓存数据并恢复默认设置吗？")) {
+      if (window.confirm("确定要清空所有缓存数据（包括映射配置）并恢复默认设置吗？")) {
           localStorage.removeItem(STORAGE_KEY_STRUCTURES);
           localStorage.removeItem(STORAGE_KEY_TARGETS);
+          localStorage.removeItem(STORAGE_KEY_CONFIGS);
           window.location.reload();
       }
   };

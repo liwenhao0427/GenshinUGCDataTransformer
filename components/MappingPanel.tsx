@@ -17,9 +17,16 @@ const getTranslatedType = (type: string) => {
     return TYPE_LABELS[type] || type;
 };
 
+// Helper to find column index by name (case-insensitive)
+const findColumnIndex = (headers: string[], name: string): number => {
+    if (!name) return -1;
+    const lowerName = name.trim().toLowerCase();
+    return headers.findIndex(h => h.trim().toLowerCase() === lowerName);
+};
+
 export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structureRegistry, configs, setConfigs, tableHeaders }) => {
   
-  // Initialize configs when activeFile changes
+  // 1. Initialize configs when activeFile changes (and no configs exist)
   useEffect(() => {
     if (activeFile && configs.length === 0) {
       // Try to find the matching definition for the whole file
@@ -56,27 +63,38 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
             // Try to find definition in registry to auto-populate fields
             let autoFields: FieldMapping[] = [];
             
-            // Fix: Default source for singleton struct should be STATIC (Manual Input)
+            // Default source for singleton struct should be STATIC (Manual Input)
+            // But if headers match, we might switch to COLUMN later (in auto-map effect) or here
             const defaultSource = mappingType === MappingType.STRUCT ? ValueSourceType.STATIC : ValueSourceType.COLUMN;
 
             if (innerId && structureRegistry[innerId]) {
-                autoFields = structureRegistry[innerId].content.value.map(p => ({
-                    targetParamType: p.param_type,
-                    targetKey: p.key,
-                    sourceType: defaultSource,
-                    columnIndex: 0,
-                    staticValue: ""
-                }));
-            } else {
-                 // Fallback: Try to derive structure from target file content if available (especially for Singleton Structs)
-                 if (mappingType === MappingType.STRUCT && item.value?.value && Array.isArray(item.value.value)) {
-                     autoFields = item.value.value.map((p: any) => ({
-                        targetParamType: p.param_type || 'String',
-                        targetKey: p.key, // Often undefined in target JSON, resolved via registry in RowConfig
-                        sourceType: defaultSource,
-                        columnIndex: 0,
+                autoFields = structureRegistry[innerId].content.value.map(p => {
+                    // Auto-map: Check if field key matches any header
+                    const matchIdx = findColumnIndex(tableHeaders, p.key || "");
+                    const useColumn = matchIdx !== -1;
+
+                    return {
+                        targetParamType: p.param_type,
+                        targetKey: p.key,
+                        sourceType: useColumn ? ValueSourceType.COLUMN : defaultSource,
+                        columnIndex: useColumn ? matchIdx : 0,
                         staticValue: ""
-                     }));
+                    };
+                });
+            } else {
+                 // Fallback: Try to derive structure from target file content if available
+                 if (mappingType === MappingType.STRUCT && item.value?.value && Array.isArray(item.value.value)) {
+                     autoFields = item.value.value.map((p: any) => {
+                        const matchIdx = findColumnIndex(tableHeaders, p.key || "");
+                        const useColumn = matchIdx !== -1;
+                        return {
+                            targetParamType: p.param_type || 'String',
+                            targetKey: p.key, 
+                            sourceType: useColumn ? ValueSourceType.COLUMN : defaultSource,
+                            columnIndex: useColumn ? matchIdx : 0,
+                            staticValue: ""
+                        };
+                     });
                  } else {
                      autoFields = [{ targetParamType: 'String', sourceType: defaultSource, columnIndex: 0, staticValue: "" }];
                  }
@@ -95,7 +113,9 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
         }
 
         if (mappingType === MappingType.SCALAR_LIST) {
-             return { ...baseConfig, columnIndex: 0 };
+             // Auto-map: Check if label matches any header
+             const matchIdx = findColumnIndex(tableHeaders, label || "");
+             return { ...baseConfig, columnIndex: matchIdx !== -1 ? matchIdx : 0 };
         }
         
         // Scalar
@@ -103,7 +123,50 @@ export const MappingPanel: React.FC<MappingPanelProps> = ({ activeFile, structur
       });
       setConfigs(initialConfigs);
     }
-  }, [activeFile, configs.length, setConfigs, structureRegistry]);
+  }, [activeFile, configs.length, setConfigs, structureRegistry]); // Removed tableHeaders from dep array to prevent full reset on paste
+
+  // 2. Effect to Auto-Map when Table Headers Change (User pastes new data)
+  // This runs whenever tableHeaders changes, scanning existing configs to see if we can improve mappings
+  useEffect(() => {
+      if (configs.length === 0 || tableHeaders.length === 0) return;
+
+      let hasChanges = false;
+      const newConfigs = configs.map(config => {
+          const newConfig = { ...config };
+
+          // Try mapping SCALAR_LIST
+          if (newConfig.type === MappingType.SCALAR_LIST) {
+              const matchIdx = findColumnIndex(tableHeaders, newConfig.label || "");
+              // Only update if it finds a match and currently it might be 0 (default) or different
+              // Logic: If we find a name match, we prioritize it.
+              if (matchIdx !== -1 && newConfig.columnIndex !== matchIdx) {
+                  newConfig.columnIndex = matchIdx;
+                  hasChanges = true;
+              }
+          }
+
+          // Try mapping STRUCT / STRUCT_LIST fields
+          if ((newConfig.type === MappingType.STRUCT || newConfig.type === MappingType.STRUCT_LIST) && newConfig.structFields) {
+              const newFields = newConfig.structFields.map(field => {
+                  const matchIdx = findColumnIndex(tableHeaders, field.targetKey || "");
+                  if (matchIdx !== -1) {
+                      if (field.sourceType !== ValueSourceType.COLUMN || field.columnIndex !== matchIdx) {
+                          hasChanges = true;
+                          return { ...field, sourceType: ValueSourceType.COLUMN, columnIndex: matchIdx };
+                      }
+                  }
+                  return field;
+              });
+              newConfig.structFields = newFields;
+          }
+
+          return newConfig;
+      });
+
+      if (hasChanges) {
+          setConfigs(newConfigs);
+      }
+  }, [tableHeaders]); // Dependency on tableHeaders
 
   const updateConfig = (index: number, updates: Partial<SlotConfig>) => {
     setConfigs(configs.map(c => c.index === index ? { ...c, ...updates } : c));
